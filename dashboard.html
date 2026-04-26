@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - BizForecast</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<style>
+    .no-data {
+        text-align: center;
+        padding: 120px 20px;
+        color: var(--text-muted);
+    }
+    .no-data .icon { font-size: 64px; margin-bottom: 20px; }
+    .no-data h3    { color: var(--text-secondary); font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+    .no-data p     { font-size: 15px; margin-bottom: 28px; line-height: 1.6; }
+    .btn-add {
+        display: inline-block;
+        padding: 14px 32px;
+        background: linear-gradient(135deg, var(--warning-color), var(--secondary-color));
+        color: white;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 15px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(245,158,11,0.3);
+    }
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245,158,11,0.4);
+    }
+</style>
+</head>
+
+<body>
+<div class="bg-animation"></div>
+<div class="bg-particles"></div>
+
+<div class="dashboard-container">
+
+<!-- Sidebar -->
+<div class="dashboard-sidebar">
+<div class="logo">
+    <div class="logo-icon">B</div>
+    BizForecast
+</div>
+<nav class="sidebar-nav">
+    <a href="{{ url_for('dashboard') }}"   class="sidebar-link active"><span class="sidebar-icon">📊</span> Dashboard</a>
+    <a href="{{ url_for('add_product') }}" class="sidebar-link"><span class="sidebar-icon">➕</span> Add Product</a>
+    <a href="{{ url_for('analytics') }}"   class="sidebar-link"><span class="sidebar-icon">📈</span> Analytics</a>
+    <a href="{{ url_for('predictions') }}" class="sidebar-link"><span class="sidebar-icon">🎯</span> Predictions</a>
+    <a href="{{ url_for('reports') }}"     class="sidebar-link"><span class="sidebar-icon">📋</span> Reports</a>
+    <a href="{{ url_for('login') }}"       class="sidebar-link"><span class="sidebar-icon">🚪</span> Logout</a>
+</nav>
+</div>
+
+<!-- Main Content -->
+<div class="dashboard-main">
+
+<!-- Header -->
+<div class="dashboard-header">
+    <div class="header-content">
+        <h1 class="page-title">Dashboard Overview</h1>
+        <p class="page-subtitle">Welcome back! Here's what's happening with your business today.</p>
+    </div>
+
+    {% if has_data %}
+    <div class="header-actions">
+        <select id="timeRange" class="time-select">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month" selected>This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
+        </select>
+        <button class="refresh-btn">Refresh Data</button>
+    </div>
+    {% endif %}
+</div>
+
+
+{% if not has_data %}
+
+<div class="no-data">
+    <div class="icon">📦</div>
+    <h3>No Products Added Yet</h3>
+    <p>Add your first product to start seeing revenue stats,<br>charts, and business insights here.</p>
+    <a href="{{ url_for('add_product') }}" class="btn-add">➕ Add Your First Product</a>
+</div>
+
+{% else %}
+
+<!-- Metrics Cards -->
+<div class="metrics-overview">
+
+    <div class="metric-card primary">
+        <div class="metric-header">
+            <div class="metric-icon">💰</div>
+            <div class="metric-trend positive">All time</div>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="val-revenue">₹{{ "{:,.0f}".format(total_revenue) }}</h3>
+            <p class="metric-label">Total Revenue</p>
+            <span class="metric-period">Lifetime</span>
+        </div>
+    </div>
+
+    <div class="metric-card success">
+        <div class="metric-header">
+            <div class="metric-icon">📈</div>
+            <div class="metric-trend positive">{{ profit_margin }}% margin</div>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="val-profit">₹{{ "{:,.0f}".format(total_profit) }}</h3>
+            <p class="metric-label">Net Profit</p>
+            <span class="metric-period">Lifetime</span>
+        </div>
+    </div>
+
+    <div class="metric-card warning">
+        <div class="metric-header">
+            <div class="metric-icon">📦</div>
+            <div class="metric-trend neutral">Inventory</div>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="val-products">{{ total_products }}</h3>
+            <p class="metric-label">Products</p>
+            <span class="metric-period">Total items</span>
+        </div>
+    </div>
+
+    <div class="metric-card info">
+        <div class="metric-header">
+            <div class="metric-icon">🛒</div>
+            <div class="metric-trend positive">Units</div>
+        </div>
+        <div class="metric-content">
+            <h3 class="metric-value" id="val-orders">{{ total_demand }}</h3>
+            <p class="metric-label">Total Units Sold</p>
+            <span class="metric-period">All products</span>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Charts Section -->
+<div class="charts-grid">
+
+    <div class="chart-card large">
+        <div class="chart-header">
+            <h3 class="chart-title">Sales Overview</h3>
+            <p class="chart-subtitle">Monthly revenue — actual figures from your products</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="salesOverviewChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card medium">
+        <div class="chart-header">
+            <h3 class="chart-title">Top Products</h3>
+            <p class="chart-subtitle">Highest revenue products</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="topProductsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card medium">
+        <div class="chart-header">
+            <h3 class="chart-title">Category Distribution</h3>
+            <p class="chart-subtitle">Revenue share by category</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+{% endif %}
+
+</div>
+</div>
+
+{% if has_data %}
+<script>
+const flaskMetrics = {
+    totalRevenue  : {{ total_revenue  | default(0) }},
+    netProfit     : {{ total_profit   | default(0) }},
+    totalProducts : {{ total_products | default(0) }},
+    totalOrders   : {{ total_demand   | default(0) }}
+};
+const chartData = {
+    salesData     : {{ sales_data      | tojson | safe }},
+    productNames  : {{ product_names   | tojson | safe }},
+    productSales  : {{ product_sales   | tojson | safe }},
+    categories    : {{ categories      | tojson | safe }},
+    categorySales : {{ category_sales  | tojson | safe }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endif %}
+
+</body>
+</html>

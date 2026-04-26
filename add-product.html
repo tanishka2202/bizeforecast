@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Product - BizForecast</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/add-products.css') }}">
+</head>
+
+<body>
+
+<!-- Background Animation -->
+<div class="bg-animation"></div>
+<div class="bg-particles"></div>
+
+<div class="add-product-container">
+
+    <!-- Sidebar -->
+    <div class="add-product-sidebar">
+        <div class="logo">
+            <div class="logo-icon">B</div>
+            BizForecast
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="{{ url_for('dashboard') }}" class="sidebar-link">
+                <span class="sidebar-icon">📊</span>
+                Dashboard
+            </a>
+
+            <a href="{{ url_for('add_product') }}" class="sidebar-link active">
+                <span class="sidebar-icon">➕</span>
+                Add Product
+            </a>
+
+            <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                <span class="sidebar-icon">📈</span>
+                Analytics
+            </a>
+
+            <a href="{{ url_for('predictions') }}" class="sidebar-link">
+                <span class="sidebar-icon">🎯</span>
+                Predictions
+            </a>
+
+            <a href="{{ url_for('reports') }}" class="sidebar-link">
+                <span class="sidebar-icon">📋</span>
+                Reports
+            </a>
+
+            <a href="{{ url_for('login') }}" class="sidebar-link">
+                <span class="sidebar-icon">🚪</span>
+                Logout
+            </a>
+
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="add-product-main">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Add New Product</h1>
+            <p class="page-subtitle">Fill in the details below to add a product to your inventory</p>
+        </div>
+
+        <!-- Add Product Form -->
+        <div class="add-product-form-container">
+            <form method="POST" action="/add-product" class="add-product-form">
+                <h2 class="section-title">Product Details</h2>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Product Name</label>
+                        <input type="text" name="productName" class="form-input" placeholder="e.g. Wireless Headphones" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select" required>
+                            <option value="">Select Category</option>
+                            <option>Electronics</option>
+                            <option>Clothing</option>
+                            <option>Food</option>
+                            <option>Cosmetics</option>
+                            <option>Sports</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Cost Price (₹)</label>
+                        <input type="number" name="costPrice" class="form-input" placeholder="0.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Selling Price (₹)</label>
+                        <input type="number" name="sellingPrice" class="form-input" placeholder="0.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Quantity Sold</label>
+                        <input type="number" name="quantitySold" class="form-input" placeholder="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Month</label>
+                        <select name="month" class="form-select">
+                            <option>Jan</option>
+                            <option>Feb</option>
+                            <option>Mar</option>
+                            <option>Apr</option>
+                            <option>May</option>
+                            <option>Jun</option>
+                            <option>Jul</option>
+                            <option>Aug</option>
+                            <option>Sep</option>
+                            <option>Oct</option>
+                            <option>Nov</option>
+                            <option>Dec</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Demand Level</label>
+                        <select name="demandLevel" class="form-select">
+                            <option>Low</option>
+                            <option>Medium</option>
+                            <option>High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Flash message area -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        ➕ Add Product
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===================== PRODUCT HISTORY TABLE ===================== -->
+        <div class="product-history">
+            <div class="history-header">
+                <h3 class="history-title">My Products</h3>
+                <span class="product-count">{{ products|length }} product{{ 's' if products|length != 1 else '' }}</span>
+            </div>
+
+            <div class="history-table-wrapper">
+                {% if products %}
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th>Cost Price</th>
+                            <th>Selling Price</th>
+                            <th>Qty Sold</th>
+                            <th>Month</th>
+                            <th>Demand</th>
+                            <th>Profit/Unit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr id="row-{{ p[0] }}">
+                            <td>{{ loop.index }}</td>
+                            <td class="product-name-cell">{{ p[2] }}</td>
+                            <td>
+                                <span class="category-badge">{{ p[3] }}</span>
+                            </td>
+                            <td>₹{{ "%.2f"|format(p[4]) }}</td>
+                            <td>₹{{ "%.2f"|format(p[5]) }}</td>
+                            <td>{{ p[6] }}</td>
+                            <td>{{ p[7] }}</td>
+                            <td>
+                                {% set demand = p[8] %}
+                                <span class="status {% if demand == 'High' %}success{% elif demand == 'Medium' %}processing{% else %}low{% endif %}">
+                                    {{ demand }}
+                                </span>
+                            </td>
+                            <td class="{% if p[5] - p[4] >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
+                                ₹{{ "%.2f"|format(p[5] - p[4]) }}
+                            </td>
+                            <td>
+                                <form method="POST" action="/delete-product/{{ p[0] }}" class="delete-form" onsubmit="return confirmDelete(this)">
+                                    <button type="submit" class="table-btn delete">🗑 Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📦</div>
+                    <p class="empty-text">No products added yet.</p>
+                    <p class="empty-subtext">Use the form above to add your first product!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- ================================================================ -->
+
+    </div>
+</div>
+
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/add-product.js') }}"></script>
+
+</body>
+</html>

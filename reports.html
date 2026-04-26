@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - BizForecast</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+<div class="bg-animation"></div>
+<div class="bg-particles"></div>
+
+<div class="dashboard-container">
+
+    <!-- Sidebar -->
+    <div class="dashboard-sidebar">
+        <div class="logo">
+            <div class="logo-icon">B</div>
+            BizForecast
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}"   class="sidebar-link"><span class="sidebar-icon">📊</span> Dashboard</a>
+            <a href="{{ url_for('add_product') }}" class="sidebar-link"><span class="sidebar-icon">➕</span> Add Product</a>
+            <a href="{{ url_for('analytics') }}"   class="sidebar-link"><span class="sidebar-icon">📈</span> Analytics</a>
+            <a href="{{ url_for('predictions') }}" class="sidebar-link"><span class="sidebar-icon">🎯</span> Predictions</a>
+            <a href="{{ url_for('reports') }}"     class="sidebar-link active"><span class="sidebar-icon">📋</span> Reports</a>
+            <a href="{{ url_for('login') }}"       class="sidebar-link"><span class="sidebar-icon">🚪</span> Logout</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard-main">
+
+        <div class="dashboard-header">
+            <div class="header-content">
+                <h1 class="page-title">Reports</h1>
+                <p class="page-subtitle">Select a report type and format to download</p>
+            </div>
+            {% if has_data %}
+            <div class="header-badge">{{ total_products }} products &nbsp;·&nbsp; {{ total_categories }} categories</div>
+            {% endif %}
+        </div>
+
+        {% if not has_data %}
+        <div class="no-data">
+            <div class="icon">📦</div>
+            <h3>No Product Data Yet</h3>
+            <p>Add products to start generating downloadable reports.</p>
+            <a href="{{ url_for('add_product') }}" class="btn-add">➕ Add Products</a>
+        </div>
+
+        {% else %}
+
+        <!-- ── Summary strip ── -->
+        <div class="summary-strip">
+            <div class="summary-item">
+                <span class="summary-label">Total Revenue</span>
+                <span class="summary-value">{{ total_revenue_fmt }}</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-label">Net Profit</span>
+                <span class="summary-value positive">{{ total_profit_fmt }}</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-label">Overall Margin</span>
+                <span class="summary-value">{{ overall_margin }}%</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-item">
+                <span class="summary-label">Units Sold</span>
+                <span class="summary-value">{{ total_units }}</span>
+            </div>
+        </div>
+
+        <!-- ── Download Panel ── -->
+        <div class="download-panel">
+            <div class="download-panel-header">
+                <h3 class="download-panel-title">📥 Generate Report</h3>
+                <p class="download-panel-sub">Choose what you want to download and in which format</p>
+            </div>
+
+            <div class="download-controls">
+
+                <!-- Report type dropdown -->
+                <div class="control-group">
+                    <label class="control-label">Report Type</label>
+                    <div class="select-wrap">
+                        <select id="reportType" class="report-select">
+                            <option value="business_summary">📋 Full Business Summary</option>
+                            <option value="product_performance">📦 Product Performance</option>
+                            <option value="profit_loss">💰 Profit &amp; Loss Statement</option>
+                            <option value="sales_summary">📈 Sales Summary</option>
+                            <option value="demand_analysis">🎯 Demand Analysis</option>
+                        </select>
+                        <span class="select-arrow">▾</span>
+                    </div>
+                </div>
+
+                <!-- Format dropdown -->
+                <div class="control-group">
+                    <label class="control-label">File Format</label>
+                    <div class="select-wrap">
+                        <select id="reportFormat" class="report-select">
+                            <option value="pdf">📄 PDF Document</option>
+                            <option value="csv">📊 CSV Spreadsheet</option>
+                            <option value="json">{ } JSON Data</option>
+                        </select>
+                        <span class="select-arrow">▾</span>
+                    </div>
+                </div>
+
+                <!-- Download button -->
+                <div class="control-group control-group-btn">
+                    <label class="control-label">&nbsp;</label>
+                    <button class="download-btn" id="downloadBtn" onclick="triggerDownload()">
+                        <span class="dl-icon">⬇</span>
+                        <span class="dl-text">Download</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Description of selected report -->
+            <div id="reportDesc" class="report-desc">
+                <span class="desc-icon">📋</span>
+                <span class="desc-text">All metrics in one place — revenue, profit, margins, top products, monthly trends, demand breakdown and key insights.</span>
+            </div>
+        </div>
+
+        <!-- ── Live data preview table ── -->
+        <div class="data-preview">
+            <div class="preview-header">
+                <h3 class="preview-title">Live Product Data</h3>
+                <span class="preview-count">{{ total_products }} records</span>
+            </div>
+            <div class="table-scroll">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Cost</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Month</th>
+                            <th>Revenue</th>
+                            <th>Profit</th>
+                            <th>Margin</th>
+                            <th>Demand</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td class="muted">{{ loop.index }}</td>
+                            <td class="bold">{{ p.name }}</td>
+                            <td><span class="cat-pill">{{ p.category }}</span></td>
+                            <td>₹{{ "{:,.0f}".format(p.cost_price) }}</td>
+                            <td>₹{{ "{:,.0f}".format(p.selling_price) }}</td>
+                            <td>{{ p.quantity_sold }}</td>
+                            <td class="muted">{{ p.month }}</td>
+                            <td class="positive">₹{{ "{:,.0f}".format(p.revenue) }}</td>
+                            <td class="{{ 'positive' if p.profit >= 0 else 'negative' }}">₹{{ "{:,.0f}".format(p.profit) }}</td>
+                            <td class="{{ 'positive' if p.margin >= 20 else ('amber' if p.margin >= 10 else 'negative') }}">{{ "%.1f"|format(p.margin) }}%</td>
+                            <td><span class="demand-pill {{ p.demand_level | lower }}">{{ p.demand_level }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+{% if has_data %}
+<script>
+    const REPORT_DATA = {{ report_json | safe }};
+</script>
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endif %}
+
+</body>
+</html>

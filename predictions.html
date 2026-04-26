@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictions - BizForecast</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/predictions.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <style>
+        /* No-data state */
+        .no-data {
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--text-muted);
+        }
+        .no-data .icon { font-size: 56px; margin-bottom: 20px; }
+        .no-data h3    { color: var(--text-secondary); margin-bottom: 10px; font-size: 1.3rem; }
+        .no-data p     { margin-bottom: 24px; }
+        .btn-add {
+            display: inline-block;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--warning-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-animation"></div>
+<div class="bg-particles"></div>
+
+<div class="predictions-container">
+
+    <!-- Sidebar -->
+    <div class="predictions-sidebar">
+        <div class="logo">
+            <div class="logo-icon">B</div>
+            BizForecast
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}"    class="sidebar-link"><span class="sidebar-icon">📊</span> Dashboard</a>
+            <a href="{{ url_for('add_product') }}"  class="sidebar-link"><span class="sidebar-icon">➕</span> Add Product</a>
+            <a href="{{ url_for('analytics') }}"    class="sidebar-link"><span class="sidebar-icon">📈</span> Analytics</a>
+            <a href="{{ url_for('predictions') }}"  class="sidebar-link active"><span class="sidebar-icon">🎯</span> Predictions</a>
+            <a href="{{ url_for('reports') }}"      class="sidebar-link"><span class="sidebar-icon">📋</span> Reports</a>
+            <a href="{{ url_for('index') }}"         class="sidebar-link"><span class="sidebar-icon">🚪</span> Logout</a>
+        </nav>
+    </div>
+
+    <!-- Main -->
+    <div class="predictions-main">
+
+        <div class="predictions-header">
+            <h1 class="page-title">Predictions</h1>
+            <p class="page-subtitle">6-month forecast based on your product data</p>
+        </div>
+
+        {% if not has_data %}
+        <div class="no-data">
+            <div class="icon">📦</div>
+            <h3>No Product Data Yet</h3>
+            <p>Add products with sales data to see predictions and forecasts.</p>
+            <a href="{{ url_for('add_product') }}" class="btn-add">➕ Add Products</a>
+        </div>
+
+        {% else %}
+
+        <!-- Summary Cards -->
+        <div class="prediction-cards">
+
+            <div class="prediction-card primary">
+                <div class="card-icon">📈</div>
+                <div class="card-content">
+                    <h3 class="card-title">6-Month Forecast Revenue</h3>
+                    <div class="card-value">{{ summary.f_revenue }}</div>
+                    <div class="card-change {{ 'positive' if summary.growth_pos else 'negative' }}">
+                        {{ summary.growth_pct }}% vs last month
+                    </div>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width:{{ summary.r2 }}%"></div></div>
+                    <span class="confidence-text">Model accuracy: {{ summary.r2 }}% (R²)</span>
+                </div>
+            </div>
+
+            <div class="prediction-card success">
+                <div class="card-icon">💰</div>
+                <div class="card-content">
+                    <h3 class="card-title">6-Month Forecast Profit</h3>
+                    <div class="card-value">{{ summary.f_profit }}</div>
+                    <div class="card-change positive">Avg margin: {{ summary.avg_margin }}%</div>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width:85%"></div></div>
+                    <span class="confidence-text">Based on {{ summary.n_months }} months of data</span>
+                </div>
+            </div>
+
+            <div class="prediction-card warning">
+                <div class="card-icon">🏆</div>
+                <div class="card-content">
+                    <h3 class="card-title">Peak Sales Month</h3>
+                    <div class="card-value">{{ summary.peak_month }}</div>
+                    <div class="card-change neutral">{{ summary.peak_rev }} revenue</div>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width:90%"></div></div>
+                    <span class="confidence-text">Highest recorded month</span>
+                </div>
+            </div>
+
+            <div class="prediction-card danger">
+                <div class="card-icon">⚠️</div>
+                <div class="card-content">
+                    <h3 class="card-title">Weakest Month</h3>
+                    <div class="card-value">{{ summary.weak_month }}</div>
+                    <div class="card-change negative">{{ summary.weak_rev }} revenue</div>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width:78%"></div></div>
+                    <span class="confidence-text">Needs attention</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-section">
+
+            <div class="chart-container large">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Revenue Forecast (Linear Regression)</h3>
+                        <p class="chart-subtitle">Historical revenue + 6-month prediction &nbsp;|&nbsp;
+                            Trend: {{ summary.trend }} &nbsp;|&nbsp;
+                            R²: {{ summary.r2 }}% &nbsp;|&nbsp;
+                            Avg Monthly: {{ summary.avg_rev }}
+                        </p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartRevenue"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Profit / Loss</h3>
+                        <p class="chart-subtitle">Historical + forecasted monthly profit</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartProfit"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Cost vs Revenue</h3>
+                        <p class="chart-subtitle">Margin and break-even view</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartCostRev"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Seasonality Index</h3>
+                        <p class="chart-subtitle">Revenue relative to your monthly average (100 = avg)</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartSeason"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">Profit Margin % by Month</h3>
+                        <p class="chart-subtitle">Historical profit margin percentage</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartMargin"></canvas>
+                </div>
+            </div>
+
+            <!-- NEW: Forecast Confidence Band Chart (replaces table) -->
+            <div class="chart-container large">
+                <div class="chart-header">
+                    <div>
+                        <h3 class="chart-title">📊 Forecast Confidence Band</h3>
+                        <p class="chart-subtitle">6-month revenue forecast with upper &amp; lower confidence bounds — uncertainty widens further out</p>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartConfidence"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Insights -->
+        <div class="insights-section">
+            <h3 class="insights-title">Insights</h3>
+            <div class="insights-grid">
+                {% for ins in insights %}
+                <div class="insight-card">
+                    <div class="insight-type {{ ins.badge }}">{{ ins.label }}</div>
+                    <h4 class="insight-title">{{ ins.title }}</h4>
+                    <p class="insight-description">{{ ins.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+{% if has_data %}
+<script>
+    const D = {{ chart | safe }};
+    console.log("Chart Data:", D);
+</script>
+<script src="{{ url_for('static', filename='js/predictions.js') }}"></script>
+{% endif %}
+
+</body>
+</html>
